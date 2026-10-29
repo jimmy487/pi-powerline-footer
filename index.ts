@@ -1860,7 +1860,7 @@ export default function powerlineFooter(pi: ExtensionAPI) {
 
   // Track session start
   pi.on("session_start", async (event, ctx) => {
-    dismissWelcome(currentCtx ?? ctx);
+    dismissWelcome(ctx);
     shellSession?.dispose();
     shellSession = null;
     sessionGeneration++;
@@ -1923,14 +1923,22 @@ export default function powerlineFooter(pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", async (event, ctx) => {
-    if (event.reason === "reload") {
-      transferActiveStashReload(ctx, stashedEditorText);
-    } else {
-      clearActiveStashReload(ctx);
+    try {
+      if (event.reason === "reload") {
+        transferActiveStashReload(ctx, stashedEditorText);
+      } else {
+        clearActiveStashReload(ctx);
+      }
+    } catch (error) {
+      if (!isStaleExtensionContextError(error)) throw error;
     }
     stashedEditorText = null;
     sessionGeneration++;
-    dismissWelcome(ctx);
+    try {
+      dismissWelcome(ctx);
+    } catch (error) {
+      if (!isStaleExtensionContextError(error)) throw error;
+    }
     restorePendingSend();
     statusRenderScheduler.cancel();
     restoreFooterStatusRepaintHook?.();
